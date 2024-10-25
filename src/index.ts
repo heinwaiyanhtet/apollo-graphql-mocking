@@ -55,3 +55,17 @@ const { url } = await startStandaloneServer(server, {
 });
 
 console.log(`🚀  Server ready at: ${url}`);
+
+
+// query Books {
+//   books {
+//     title
+//   }
+// }
+
+// mutation AddBook {
+//   addBook(title: "hello", author:"helllo") {
+//     title
+//     author
+//   }
+// }
