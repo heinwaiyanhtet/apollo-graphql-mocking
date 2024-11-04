@@ -1,50 +1,88 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 
+// Define the type definitions for Product Management
 const typeDefs = `#graphql
-  # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
-
-  # This "Book" type defines the queryable fields for every book in our data source.
-  type Book {
-    title: String
-    author: String
+  # The "Product" type defines the queryable fields for every product.
+  type Product {
+    id: ID
+    name: String
+    price: Float
+    stock: Int
   }
 
-  # The "Query" type lists all the available queries.
+  # The "Query" type lists all available queries.
   type Query {
-    books: [Book]
+    products: [Product]
+    product(id: ID!): Product
   }
 
-  # The "Mutation" type lists all the mutations.
+  # The "Mutation" type lists all available mutations.
   type Mutation {
-    addBook(title: String!, author: String!): Book
+    addProduct(name: String!, price: Float!, stock: Int!): Product
+    updateProduct(id: ID!, name: String, price: Float, stock: Int): Product
+    deleteProduct(id: ID!): Product
   }
 `;
 
-const books = [
+// In-memory data store for products
+let products = [
   {
-    title: 'The Awakening',
-    author: 'Kate Chopin',
+    id: '1',
+    name: 'Laptop',
+    price: 999.99,
+    stock: 50,
   },
   {
-    title: 'City of Glass',
-    author: 'Paul Auster',
+    id: '2',
+    name: 'Smartphone',
+    price: 599.99,
+    stock: 100,
   },
 ];
 
+// Define resolvers for handling queries and mutations
 const resolvers = {
   Query: {
-    books: () => books,
+    products: () => products,
+    product: (_, { id }) => products.find(product => product.id === id),
   },
   Mutation: {
-    addBook: (_, { title, author }) => {
-      const newBook = { title, author };
-      books.push(newBook);
-      return newBook;
+    addProduct: (_, { name, price, stock }) => {
+      const newProduct = {
+        id: (products.length + 1).toString(), // Generate a simple unique ID
+        name,
+        price,
+        stock,
+      };
+      products.push(newProduct);
+      return newProduct;
+    },
+    updateProduct: (_, { id, name, price, stock }) => {
+      const productIndex = products.findIndex(product => product.id === id);
+      if (productIndex === -1) return null;
+
+      const updatedProduct = {
+        ...products[productIndex],
+        ...(name !== undefined && { name }),
+        ...(price !== undefined && { price }),
+        ...(stock !== undefined && { stock }),
+      };
+
+      products[productIndex] = updatedProduct;
+      return updatedProduct;
+    },
+    deleteProduct: (_, { id }) => {
+      const productIndex = products.findIndex(product => product.id === id);
+      if (productIndex === -1) return null;
+
+      const [deletedProduct] = products.splice(productIndex, 1);
+      return deletedProduct;
     },
   },
 };
 
+// Create and start the Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
@@ -55,17 +93,3 @@ const { url } = await startStandaloneServer(server, {
 });
 
 console.log(`🚀  Server ready at: ${url}`);
-
-
-// query Books {
-//   books {
-//     title
-//   }
-// }
-
-// mutation AddBook {
-//   addBook(title: "hello", author:"helllo") {
-//     title
-//     author
-//   }
-// }
